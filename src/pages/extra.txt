@@ -1,0 +1,222 @@
+Users :
+// import { useState, useEffect } from 'react'
+// import { User } from '../types'
+// import { api } from '../api/dummyApi'
+// import { Button } from '../components/ui/button'
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableHeader,
+//   TableRow,
+// } from '../components/ui/table'
+// import { Input } from '../components/ui/input'
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+
+// export default function Users() {
+//   const [users, setUsers] = useState<User[]>([])
+//   const [newUser, setNewUser] = useState<Omit<User, 'id'>>({ name: '', email: '', role: 'user', status: 'active' })
+
+//   useEffect(() => {
+//     fetchUsers()
+//   }, [])
+
+//   const fetchUsers = async () => {
+//     const fetchedUsers = await api.getUsers()
+//     setUsers(fetchedUsers)
+//   }
+
+//   const handleCreateUser = async () => {
+//     await api.createUser(newUser)
+//     setNewUser({ name: '', email: '', role: 'user', status: 'active' })
+//     fetchUsers()
+//   }
+
+//   const handleUpdateUser = async (id: string, updates: Partial<User>) => {
+//     await api.updateUser(id, updates)
+//     fetchUsers()
+//   }
+
+//   const handleDeleteUser = async (id: string) => {
+//     await api.deleteUser(id)
+//     fetchUsers()
+//   }
+
+//   return (
+//     <div>
+//       <h1 className="text-3xl font-bold mb-4">Users</h1>
+      
+//       <div className="mb-4 flex gap-2">
+//         <Input
+//           placeholder="Name"
+//           value={newUser.name}
+//           onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+//         />
+//         <Input
+//           placeholder="Email"
+//           value={newUser.email}
+//           onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+//         />
+//         <Select
+//           value={newUser.role}
+//           onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+//         >
+//           <SelectTrigger>
+//             <SelectValue placeholder="Select role" />
+//           </SelectTrigger>
+//           <SelectContent>
+//             <SelectItem value="admin">Admin</SelectItem>
+//             <SelectItem value="user">User</SelectItem>
+//           </SelectContent>
+//         </Select>
+//         <Button onClick={handleCreateUser}>Add User</Button>
+//       </div>
+
+//       <Table>
+//         <TableHeader>
+//           <TableRow>
+//             <TableHead>Name</TableHead>
+//             <TableHead>Email</TableHead>
+//             <TableHead>Role</TableHead>
+//             <TableHead>Status</TableHead>
+//             <TableHead>Actions</TableHead>
+//           </TableRow>
+//         </TableHeader>
+//         <TableBody>
+//           {users.map((user) => (
+//             <TableRow key={user.id}>
+//               <TableCell>{user.name}</TableCell>
+//               <TableCell>{user.email}</TableCell>
+//               <TableCell>{user.role}</TableCell>
+//               <TableCell>{user.status}</TableCell>
+//               <TableCell>
+//                 <Select
+//                   value={user.status}
+//                   onValueChange={(value) => handleUpdateUser(user.id, { status: value as 'active' | 'inactive' })}
+//                 >
+//                   <SelectTrigger>
+//                     <SelectValue />
+//                   </SelectTrigger>
+//                   <SelectContent>
+//                     <SelectItem value="active">Active</SelectItem>
+//                     <SelectItem value="inactive">Inactive</SelectItem>
+//                   </SelectContent>
+//                 </Select>
+//                 <Button variant="destructive" onClick={() => handleDeleteUser(user.id)}>Delete</Button>
+//               </TableCell>
+//             </TableRow>
+//           ))}
+//         </TableBody>
+//       </Table>
+//     </div>
+//   )
+// }
+
+Roles:
+// import { useState, useEffect } from 'react'
+// import { Role, Permission } from '../types'
+// import { api } from '../api/dummyApi'
+// import { Button } from '../components/ui/button'
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableHeader,
+//   TableRow,
+// } from '../components/ui/table'
+// import { Input } from '../components/ui/input'
+// import { Checkbox } from '../components/ui/checkbox'
+
+// export default function Roles() {
+//   const [roles, setRoles] = useState<Role[]>([])
+//   const [newRole, setNewRole] = useState<Omit<Role, 'id'>>({ name: '', permissions: [] })
+
+//   useEffect(() => {
+//     fetchRoles()
+//   }, [])
+
+//   const fetchRoles = async () => {
+//     const fetchedRoles = await api.getRoles()
+//     setRoles(fetchedRoles)
+//   }
+
+//   const handleCreateRole = async () => {
+//     await api.createRole(newRole)
+//     setNewRole({ name: '', permissions: [] })
+//     fetchRoles()
+//   }
+
+//   const handleUpdateRole = async (id: string, updates: Partial<Role>) => {
+//     await api.updateRole(id, updates)
+//     fetchRoles()
+//   }
+
+//   const handleDeleteRole = async (id: string) => {
+//     await api.deleteRole(id)
+//     fetchRoles()
+//   }
+
+//   const togglePermission = (role: Role, permission: Permission) => {
+//     const updatedPermissions = role.permissions.includes(permission)
+//       ? role.permissions.filter(p => p !== permission)
+//       : [...role.permissions, permission]
+//     handleUpdateRole(role.id, { permissions: updatedPermissions })
+//   }
+
+//   return (
+//     <div>
+//       <h1 className="text-3xl font-bold mb-4">Roles</h1>
+      
+//       <div className="mb-4 flex gap-2">
+//         <Input
+//           placeholder="Role name"
+//           value={newRole.name}
+//           onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+//         />
+//         <Button onClick={handleCreateRole}>Add Role</Button>
+//       </div>
+
+//       <Table>
+//         <TableHeader>
+//           <TableRow>
+//             <TableHead>Name</TableHead>
+//             <TableHead>Read</TableHead>
+//             <TableHead>Write</TableHead>
+//             <TableHead>Delete</TableHead>
+//             <TableHead>Actions</TableHead>
+//           </TableRow>
+//         </TableHeader>
+//         <TableBody>
+//           {roles.map((role) => (
+//             <TableRow key={role.id}>
+//               <TableCell>{role.name}</TableCell>
+//               <TableCell>
+//                 <Checkbox
+//                   checked={role.permissions.includes('read')}
+//                   onCheckedChange={() => togglePermission(role, 'read')}
+//                 />
+//               </TableCell>
+//               <TableCell>
+//                 <Checkbox
+//                   checked={role.permissions.includes('write')}
+//                   onCheckedChange={() => togglePermission(role, 'write')}
+//                 />
+//               </TableCell>
+//               <TableCell>
+//                 <Checkbox
+//                   checked={role.permissions.includes('delete')}
+//                   onCheckedChange={() => togglePermission(role, 'delete')}
+//                 />
+//               </TableCell>
+//               <TableCell>
+//                 <Button variant="destructive" onClick={() => handleDeleteRole(role.id)}>Delete</Button>
+//               </TableCell>
+//             </TableRow>
+//           ))}
+//         </TableBody>
+//       </Table>
+//     </div>
+//   )
+// }

@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
-import { User } from '../types'
-import { api } from '../api/dummyApi'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '../components/ui/button'
 import {
   Table,
@@ -10,68 +9,137 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { Label } from '../components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select'
+
+// Dummy data
+const initialUsers = [
+  { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Admin', status: 'Active' },
+  { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Editor', status: 'Active' },
+  { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'Viewer', status: 'Inactive' },
+]
+
+const roles = ['Admin', 'Editor', 'Viewer']
+
+// Mock API functions
+const fetchUsers = () => Promise.resolve(initialUsers)
+const addUser = (user) => Promise.resolve({ id: Date.now(), ...user })
+const updateUser = (user) => Promise.resolve(user)
+const deleteUser = (id) => Promise.resolve(id)
 
 export default function Users() {
-  const [users, setUsers] = useState<User[]>([])
-  const [newUser, setNewUser] = useState<Omit<User, 'id'>>({ name: '', email: '', role: 'user', status: 'active' })
+  const [isOpen, setIsOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState(null)
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    fetchUsers()
-  }, [])
+  const { data: users } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchUsers,
+  })
 
-  const fetchUsers = async () => {
-    const fetchedUsers = await api.getUsers()
-    setUsers(fetchedUsers)
-  }
+  const addUserMutation = useMutation({
+    mutationFn: addUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users'])
+      setIsOpen(false)
+    },
+  })
 
-  const handleCreateUser = async () => {
-    await api.createUser(newUser)
-    setNewUser({ name: '', email: '', role: 'user', status: 'active' })
-    fetchUsers()
-  }
+  const updateUserMutation = useMutation({
+    mutationFn: updateUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users'])
+      setIsOpen(false)
+      setEditingUser(null)
+    },
+  })
 
-  const handleUpdateUser = async (id: string, updates: Partial<User>) => {
-    await api.updateUser(id, updates)
-    fetchUsers()
-  }
+  const deleteUserMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users'])
+    },
+  })
 
-  const handleDeleteUser = async (id: string) => {
-    await api.deleteUser(id)
-    fetchUsers()
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+    const userData = Object.fromEntries(formData.entries())
+    
+    if (editingUser) {
+      updateUserMutation.mutate({ ...editingUser, ...userData })
+    } else {
+      addUserMutation.mutate(userData)
+    }
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Users</h1>
-      
-      <div className="mb-4 flex gap-2">
-        <Input
-          placeholder="Name"
-          value={newUser.name}
-          onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-        />
-        <Input
-          placeholder="Email"
-          value={newUser.email}
-          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-        />
-        <Select
-          value={newUser.role}
-          onValueChange={(value) => setNewUser({ ...newUser, role: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="user">User</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button onClick={handleCreateUser}>Add User</Button>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Users</h1>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setEditingUser(null)}>Add User</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingUser ? 'Edit User' : 'Add User'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" defaultValue={editingUser?.name} required />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" name="email" type="email" defaultValue={editingUser?.email} required />
+              </div>
+              <div>
+                <Label htmlFor="role">Role</Label>
+                <Select name="role" defaultValue={editingUser?.role || roles[0]}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select name="status" defaultValue={editingUser?.status || 'Active'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">{editingUser ? 'Update' : 'Add'} User</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
-
       <Table>
         <TableHeader>
           <TableRow>
@@ -83,26 +151,31 @@ export default function Users() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.map((user) => (
+          {users?.map((user) => (
             <TableRow key={user.id}>
               <TableCell>{user.name}</TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>{user.status}</TableCell>
               <TableCell>
-                <Select
-                  value={user.status}
-                  onValueChange={(value) => handleUpdateUser(user.id, { status: value as 'active' | 'inactive' })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mr-2"
+                  onClick={() => {
+                    setEditingUser(user)
+                    setIsOpen(true)
+                  }}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="destructive" onClick={() => handleDeleteUser(user.id)}>Delete</Button>
+                  Edit
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => deleteUserMutation.mutate(user.id)}
+                >
+                  Delete
+                </Button>
               </TableCell>
             </TableRow>
           ))}

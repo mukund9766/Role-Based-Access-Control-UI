@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Role, Permission } from '../types'
-import { api } from '../api/dummyApi'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '../components/ui/button'
 import {
   Table,
@@ -10,92 +9,147 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 import { Checkbox } from '../components/ui/checkbox'
 
+// Dummy data
+const initialRoles = [
+  { id: 1, name: 'Admin', permissions: ['read', 'write', 'delete'] },
+  { id: 2, name: 'Editor', permissions: ['read', 'write'] },
+  { id: 3, name: 'Viewer', permissions: ['read'] },
+]
+
+const allPermissions = ['read', 'write', 'delete']
+
+// Mock API functions
+const fetchRoles = () => Promise.resolve(initialRoles)
+const addRole = (role) => Promise.resolve({ id: Date.now(), ...role })
+const updateRole = (role) => Promise.resolve(role)
+const deleteRole = (id) => Promise.resolve(id)
+
 export default function Roles() {
-  const [roles, setRoles] = useState<Role[]>([])
-  const [newRole, setNewRole] = useState<Omit<Role, 'id'>>({ name: '', permissions: [] })
+  const [isOpen, setIsOpen] = useState(false)
+  const [editingRole, setEditingRole] = useState(null)
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    fetchRoles()
-  }, [])
+  const { data: roles } = useQuery({
+    queryKey: ['roles'],
+    queryFn: fetchRoles,
+  })
 
-  const fetchRoles = async () => {
-    const fetchedRoles = await api.getRoles()
-    setRoles(fetchedRoles)
-  }
+  const addRoleMutation = useMutation({
+    mutationFn: addRole,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['roles'])
+      setIsOpen(false)
+    },
+  })
 
-  const handleCreateRole = async () => {
-    await api.createRole(newRole)
-    setNewRole({ name: '', permissions: [] })
-    fetchRoles()
-  }
+  const updateRoleMutation = useMutation({
+    mutationFn: updateRole,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['roles'])
+      setIsOpen(false)
+      setEditingRole(null)
+    },
+  })
 
-  const handleUpdateRole = async (id: string, updates: Partial<Role>) => {
-    await api.updateRole(id, updates)
-    fetchRoles()
-  }
+  const deleteRoleMutation = useMutation({
+    mutationFn: deleteRole,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['roles'])
+    },
+  })
 
-  const handleDeleteRole = async (id: string) => {
-    await api.deleteRole(id)
-    fetchRoles()
-  }
-
-  const togglePermission = (role: Role, permission: Permission) => {
-    const updatedPermissions = role.permissions.includes(permission)
-      ? role.permissions.filter(p => p !== permission)
-      : [...role.permissions, permission]
-    handleUpdateRole(role.id, { permissions: updatedPermissions })
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+    const name = formData.get('name')
+    const permissions = allPermissions.filter(perm => formData.get(perm))
+    const roleData = { name, permissions }
+    
+    if (editingRole) {
+      updateRoleMutation.mutate({ ...editingRole, ...roleData })
+    } else {
+      addRoleMutation.mutate(roleData)
+    }
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Roles</h1>
-      
-      <div className="mb-4 flex gap-2">
-        <Input
-          placeholder="Role name"
-          value={newRole.name}
-          onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
-        />
-        <Button onClick={handleCreateRole}>Add Role</Button>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Roles</h1>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setEditingRole(null)}>Add Role</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingRole ? 'Edit Role' : 'Add Role'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" defaultValue={editingRole?.name} required />
+              </div>
+              <div>
+                <Label>Permissions</Label>
+                {allPermissions.map((permission) => (
+                  <div key={permission} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={permission}
+                      name={permission}
+                      defaultChecked={editingRole?.permissions.includes(permission)}
+                    />
+                    <Label htmlFor={permission}>{permission}</Label>
+                  </div>
+                ))}
+              </div>
+              <Button type="submit">{editingRole ? 'Update' : 'Add'} Role</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
-
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Read</TableHead>
-            <TableHead>Write</TableHead>
-            <TableHead>Delete</TableHead>
+            <TableHead>Permissions</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {roles.map((role) => (
+          {roles?.map((role) => (
             <TableRow key={role.id}>
               <TableCell>{role.name}</TableCell>
+              <TableCell>{role.permissions.join(', ')}</TableCell>
               <TableCell>
-                <Checkbox
-                  checked={role.permissions.includes('read')}
-                  onCheckedChange={() => togglePermission(role, 'read')}
-                />
-              </TableCell>
-              <TableCell>
-                <Checkbox
-                  checked={role.permissions.includes('write')}
-                  onCheckedChange={() => togglePermission(role, 'write')}
-                />
-              </TableCell>
-              <TableCell>
-                <Checkbox
-                  checked={role.permissions.includes('delete')}
-                  onCheckedChange={() => togglePermission(role, 'delete')}
-                />
-              </TableCell>
-              <TableCell>
-                <Button variant="destructive" onClick={() => handleDeleteRole(role.id)}>Delete</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mr-2"
+                  onClick={() => {
+                    setEditingRole(role)
+                    setIsOpen(true)
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => deleteRoleMutation.mutate(role.id)}
+                >
+                  Delete
+                </Button>
               </TableCell>
             </TableRow>
           ))}
@@ -104,4 +158,6 @@ export default function Roles() {
     </div>
   )
 }
+
+
 
