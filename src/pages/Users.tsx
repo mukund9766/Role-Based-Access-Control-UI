@@ -28,9 +28,9 @@ import {
 
 // Dummy data
 const initialUsers = [
-  { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Admin', status: 'Active' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Editor', status: 'Active' },
-  { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'Viewer', status: 'Inactive' },
+  { id: 1, name: 'ram patil', email: 'ram@example.com', role: 'Admin', status: 'Active' },
+  { id: 2, name: 'sita rao', email: 'sita@example.com', role: 'Editor', status: 'Active' },
+  { id: 3, name: 'lakhan mane', email: 'lakhan@example.com', role: 'Viewer', status: 'Inactive' },
 ]
 
 const roles = ['Admin', 'Editor', 'Viewer']
@@ -46,23 +46,25 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState(null)
   const queryClient = useQueryClient()
 
-  const { data: users } = useQuery({
+  const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
   })
 
   const addUserMutation = useMutation({
     mutationFn: addUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users'])
+    onSuccess: (newUser) => {
+      queryClient.setQueryData(['users'], (oldUsers) => [...oldUsers, newUser])
       setIsOpen(false)
     },
   })
 
   const updateUserMutation = useMutation({
     mutationFn: updateUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users'])
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(['users'], (oldUsers) =>
+        oldUsers.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+      )
       setIsOpen(false)
       setEditingUser(null)
     },
@@ -70,8 +72,10 @@ export default function Users() {
 
   const deleteUserMutation = useMutation({
     mutationFn: deleteUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users'])
+    onSuccess: (deletedId) => {
+      queryClient.setQueryData(['users'], (oldUsers) =>
+        oldUsers.filter((user) => user.id !== deletedId)
+      )
     },
   })
 
@@ -151,7 +155,7 @@ export default function Users() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users?.map((user) => (
+          {users.map((user) => (
             <TableRow key={user.id}>
               <TableCell>{user.name}</TableCell>
               <TableCell>{user.email}</TableCell>

@@ -40,23 +40,25 @@ export default function Roles() {
   const [editingRole, setEditingRole] = useState(null)
   const queryClient = useQueryClient()
 
-  const { data: roles } = useQuery({
+  const { data: roles = [] } = useQuery({
     queryKey: ['roles'],
     queryFn: fetchRoles,
   })
 
   const addRoleMutation = useMutation({
     mutationFn: addRole,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['roles'])
+    onSuccess: (newRole) => {
+      queryClient.setQueryData(['roles'], (oldRoles) => [...oldRoles, newRole])
       setIsOpen(false)
     },
   })
 
   const updateRoleMutation = useMutation({
     mutationFn: updateRole,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['roles'])
+    onSuccess: (updatedRole) => {
+      queryClient.setQueryData(['roles'], (oldRoles) =>
+        oldRoles.map((role) => (role.id === updatedRole.id ? updatedRole : role))
+      )
       setIsOpen(false)
       setEditingRole(null)
     },
@@ -64,8 +66,10 @@ export default function Roles() {
 
   const deleteRoleMutation = useMutation({
     mutationFn: deleteRole,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['roles'])
+    onSuccess: (deletedId) => {
+      queryClient.setQueryData(['roles'], (oldRoles) =>
+        oldRoles.filter((role) => role.id !== deletedId)
+      )
     },
   })
 
@@ -127,7 +131,7 @@ export default function Roles() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {roles?.map((role) => (
+          {roles.map((role) => (
             <TableRow key={role.id}>
               <TableCell>{role.name}</TableCell>
               <TableCell>{role.permissions.join(', ')}</TableCell>
@@ -158,6 +162,4 @@ export default function Roles() {
     </div>
   )
 }
-
-
 
